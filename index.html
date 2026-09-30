@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIZZ CRM</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+body{background:#000;color:#fff;max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column}
+header{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center}
+.progress{height:4px;background:#111}.bar{height:4px;background:#ff2d55;transition:0.3s}
+.list{flex:1;overflow:auto}
+.contact{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:space-between}
+.contact b{font-size:15px}.contact span{font-size:12px;color:#888}
+.stage-tag{font-size:10px;background:#111;padding:3px 8px;border-radius:20px;color:#ff2d55}
+.chat{flex:1;overflow:auto;padding:16px;display:none;flex-direction:column;gap:10px}
+.bubble{max-width:80%;padding:10px 14px;border-radius:16px;font-size:14px;word-break:break-word}
+.me{background:#ff2d55;align-self:flex-end}.her{background:#111;align-self:flex-start}
+.suggest{background:#111;border:1px solid #222;border-radius:16px;padding:12px;margin-top:8px}
+input,textarea{background:#111;border:1px solid #222;color:#fff;padding:12px;border-radius:12px;width:100%;outline:none}
+button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radius:12px;font-weight:700}
+.stages{display:flex;gap:6px;margin:10px 0;overflow-x:auto}
+.stages button{background:#111;border:1px solid #222;color:#888;padding:6px 10px;border-radius:20px;font-size:11px;white-space:nowrap}
+.stages button.active{background:#ff2d55;color:#fff}
+</style>
+</head>
+<body>
+<header>
+  <b id="title">RIZZ.</b>
+  <button class="main" style="padding:6px 12px" onclick="newPerson()">+ New</button>
+</header>
+<div class="progress"><div id="pbar" class="bar" style="width:25%"></div></div>
+
+<div id="contacts" class="list"></div>
+
+<div id="chatView" class="chat">
+  <div style="display:flex;gap:6px;align-items:center"><button onclick="back()" style="background:#111;border:0;color:#fff;padding:6px 10px;border-radius:20px">←</button><b id="chatName"></b><span id="chatStage" class="stage-tag"></span></div>
+  <div class="stages">
+    <button onclick="setStage('day1')" id="s1">Day 1-2 Ice</button>
+    <button onclick="setStage('day2')" id="s2">Day 3-5 Know Her</button>
+    <button onclick="setStage('day3')" id="s3">Day 6-10 Vibe</button>
+    <button onclick="setStage('day4')" id="s4">Day 11+ Ask</button>
+  </div>
+  <div id="msgs" style="flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px"></div>
+  <textarea id="sheSaid" placeholder="Paste what she said..."></textarea>
+  <button class="main" onclick="gen()">Generate Rizz ⚡</button>
+  <div id="suggest"></div>
+</div>
+
+<script>
+let db = JSON.parse(localStorage.getItem('rizz_db')||'{}');
+let current = null;
+let curStage = 'day1';
+
+function save(){localStorage.setItem('rizz_db', JSON.stringify(db)); renderContacts();}
+
+function newPerson(){
+  let name = prompt("Her name / nickname?");
+  if(!name) return;
+  db[name] = {stage:'day1', chats:[], created:Date.now()};
+  save(); openChat(name);
+}
+
+function renderContacts(){
+  let html='';
+  for(let name in db){
+    let p = db[name];
+    let prog = {day1:25,day2:50,day3:75,day4:100}[p.stage];
+    html+=`<div class="contact" onclick="openChat('${name}')"><div><b>${name}</b><br><span>${p.chats.slice(-1)[0]?.her||'No chat yet'}</span></div><div class="stage-tag">${p.stage} • ${prog}%</div></div>`;
+  }
+  if(!html) html='<p style="padding:40px;color:#555;text-align:center">No girls yet. Tap + New to add.</p>';
+  document.getElementById('contacts').innerHTML=html;
+}
+
+function openChat(name){
+  current=name; curStage=db[name].stage;
+  document.getElementById('contacts').style.display='none';
+  document.getElementById('chatView').style.display='flex';
+  document.getElementById('chatName').innerText=name;
+  updateStageUI();
+  renderMsgs();
+}
+
+function back(){
+  document.getElementById('chatView').style.display='none';
+  document.getElementById('contacts').style.display='block';
+  current=null; document.getElementById('title').innerText='RIZZ.';
+}
+
+function setStage(s){
+  curStage=s; db[current].stage=s; save(); updateStageUI();
+}
+
+function updateStageUI(){
+  document.querySelectorAll('.stages button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('s'+curStage.slice(-1)).classList.add('active');
+  document.getElementById('chatStage').innerText=curStage;
+  document.getElementById('pbar').style.width={day1:'25%',day2:'50%',day3:'75%',day4:'100%'}[curStage];
+}
+
+function renderMsgs(){
+  let msgs = db[current].chats.map(c=>`<div class="bubble her">${c.her}</div><div class="bubble me">${c.me}</div>`).join('');
+  document.getElementById('msgs').innerHTML=msgs;
+}
+
+async function gen(){
+  let her = document.getElementById('sheSaid').value.trim();
+  if(!her) return;
+  document.getElementById('suggest').innerHTML='Generating from API...';
+  try{
+    let history = db[current].chats || [];
+    let res = await fetch('https://rizz-sayitbetter.jdevapphub.workers.dev/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sheSaid:her, stage:curStage, history: history})
+    });
+    let d = await res.json();
+    if(!res.ok) throw new Error(d.error || d.message || JSON.stringify(d));
+    if(d.error) throw new Error(d.error);
+
+    // Ensure fields exist
+    if(!d.natural) throw new Error("API returned: " + JSON.stringify(d).slice(0,200));
+
+    document.getElementById('suggest').innerHTML=`
+      <div class="suggest"><b style="color:#ff2d55;font-size:11px">NATURAL</b><br>${d.natural} <button onclick="use(this.dataset.txt,'${her.replace(/'/g,"&#39;")}')" data-txt="${d.natural.replace(/"/g,'&quot;')}" style="float:right;background:#222;border:0;color:#fff;padding:4px 8px;border-radius:20px">USE</button></div>
+      <div class="suggest"><b style="color:#ff2d55;font-size:11px">FUNNY</b><br>${d.funny} <button onclick="use(this.dataset.txt,'${her.replace(/'/g,"&#39;")}')" data-txt="${d.funny.replace(/"/g,'&quot;')}" style="float:right;background:#222;border:0;color:#fff;padding:4px 8px;border-radius:20px">USE</button></div>
+      <div class="suggest" style="border-color:#ff2d55"><b style="color:#ff2d55;font-size:11px">SMOOTH • ${curStage}</b><br>${d.smooth} <button onclick="use(this.dataset.txt,'${her.replace(/'/g,"&#39;")}')" data-txt="${d.smooth.replace(/"/g,'&quot;')}" style="float:right;background:#ff2d55;border:0;color:#fff;padding:4px 8px;border-radius:20px">USE</button><br><small style="color:#666;margin-top:6px;display:block">Tip: ${d.advice||''}</small></div>
+    `;
+  }catch(e){
+    document.getElementById('suggest').innerHTML='<div style="background:#220000;border:1px solid #550000;padding:12px;border-radius:12px;color:#ff7777">API Error: '+e.message+'</div>';
+    console.error(e);
+  }
+}
+
+function use(me, her){
+  db[current].chats.push({her, me, at:Date.now()});
+  save(); renderMsgs(); document.getElementById('sheSaid').value=''; document.getElementById('suggest').innerHTML='';
+  if(db[current].chats.length>3 && curStage=='day1'){setStage('day2')}
+}
+
+renderContacts();
+</script>
+</body>
+</html>
