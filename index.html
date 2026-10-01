@@ -5,139 +5,290 @@
 <title>RIZZ CRM</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#000;color:#fff;max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column}
-header{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center}
-.progress{height:4px;background:#111}.bar{height:4px;background:#ff2d55;transition:0.3s}
+body{background:#000;color:#fff;max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.progress{height:4px;background:#111;flex-shrink:0}.bar{height:4px;background:#ff2d55;transition:0.3s}
 .list{flex:1;overflow:auto}
-.contact{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:space-between}
+.contact{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center}
 .contact b{font-size:15px}.contact span{font-size:12px;color:#888}
-.stage-tag{font-size:10px;background:#111;padding:3px 8px;border-radius:20px;color:#ff2d55}
+.stage-tag{font-size:10px;background:#111;padding:3px 8px;border-radius:20px;color:#ff2d55;white-space:nowrap}
 .chat{flex:1;overflow:auto;padding:16px;display:none;flex-direction:column;gap:10px}
 .bubble{max-width:80%;padding:10px 14px;border-radius:16px;font-size:14px;word-break:break-word}
 .me{background:#ff2d55;align-self:flex-end}.her{background:#111;align-self:flex-start}
 .suggest{background:#111;border:1px solid #222;border-radius:16px;padding:12px;margin-top:8px}
 input,textarea{background:#111;border:1px solid #222;color:#fff;padding:12px;border-radius:12px;width:100%;outline:none}
 button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radius:12px;font-weight:700}
-.stages{display:flex;gap:6px;margin:10px 0;overflow-x:auto}
+.stages{display:flex;gap:6px;margin:10px 0;overflow-x:auto;flex-shrink:0}
 .stages button{background:#111;border:1px solid #222;color:#888;padding:6px 10px;border-radius:20px;font-size:11px;white-space:nowrap}
 .stages button.active{background:#ff2d55;color:#fff}
+.mode-badge{font-size:10px;background:#1a1a1a;padding:3px 8px;border-radius:20px;color:#888;margin-left:6px}
+
+/* Mode selection cards */
+.modes{padding:20px;display:flex;flex-direction:column;gap:14px;overflow:auto}
+.mode-card{padding:22px;border-radius:20px;border:1px solid #222;background:linear-gradient(135deg,#0a0a0a,#111);cursor:pointer;transition:0.2s;position:relative;overflow:hidden}
+.mode-card:active{transform:scale(0.98)}
+.mode-card .emoji{font-size:34px;display:block;margin-bottom:10px}
+.mode-card .mname{font-size:20px;font-weight:800;letter-spacing:0.5px}
+.mode-card .mdesc{font-size:12.5px;color:#888;margin-top:6px;line-height:1.4}
+.mode-card .count{position:absolute;top:20px;right:20px;background:#111;padding:4px 10px;border-radius:20px;font-size:11px;color:#ff2d55;font-weight:700;border:1px solid #222}
+.mode-card.crush{border-color:#ff2d55}
+.mode-card.crush .mname{color:#ff2d55}
+.mode-card.gf{border-color:#ff5c8a}
+.mode-card.gf .mname{color:#ff5c8a}
+.back-btn{background:#111;border:0;color:#fff;padding:8px 12px;border-radius:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:#ff2d55;border:0;color:#fff;font-size:26px;font-weight:300;cursor:pointer;box-shadow:0 4px 20px rgba(255,45,85,0.4);display:none;z-index:10}
+.fab.show{display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
-<header>
-  <b id="title">RIZZ.</b>
-  <button class="main" style="padding:6px 12px" onclick="newPerson()">+ New</button>
-</header>
-<div class="progress"><div id="pbar" class="bar" style="width:25%"></div></div>
 
-<div id="contacts" class="list"></div>
-
-<div id="chatView" class="chat">
-  <div style="display:flex;gap:6px;align-items:center"><button onclick="back()" style="background:#111;border:0;color:#fff;padding:6px 10px;border-radius:20px">←</button><b id="chatName"></b><span id="chatStage" class="stage-tag"></span></div>
-  <div class="stages">
-    <button onclick="setStage('day1')" id="s1">Day 1-2 Ice</button>
-    <button onclick="setStage('day2')" id="s2">Day 3-5 Know Her</button>
-    <button onclick="setStage('day3')" id="s3">Day 6-10 Vibe</button>
-    <button onclick="setStage('day4')" id="s4">Day 11+ Ask</button>
+<!-- HOME VIEW (mode selection) -->
+<div id="homeView" style="display:flex;flex-direction:column;height:100%">
+  <header>
+    <b>RIZZ.</b>
+    <span style="font-size:11px;color:#666">Talking Stage Coach</span>
+  </header>
+  <div class="modes">
+    <div class="mode-card crush" onclick="openMode('crush')">
+      <span class="count" id="crushCount">0</span>
+      <span class="emoji">🔥</span>
+      <div class="mname">CRUSH</div>
+      <div class="mdesc">Building the vibe. Ice breakers → Know her → Vibe → The Ask.</div>
+    </div>
+    <div class="mode-card gf" onclick="openMode('gf')">
+      <span class="count" id="gfCount">0</span>
+      <span class="emoji">💕</span>
+      <div class="mname">GIRLFRIEND</div>
+      <div class="mdesc">Flowing conversation with your girl. Daily vibe, flirty, deep talk, repair.</div>
+    </div>
   </div>
-  <div id="msgs" style="flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px"></div>
-  <textarea id="sheSaid" placeholder="Paste what she said..."></textarea>
-  <button class="main" onclick="gen()">Generate Rizz ⚡</button>
-  <div id="suggest"></div>
 </div>
+
+<!-- LIST VIEW (girls in selected mode) -->
+<div id="listView" style="display:none;flex-direction:column;height:100%">
+  <header>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="back-btn" onclick="backToHome()">←</button>
+      <b id="listTitle">Crush</b>
+    </div>
+  </header>
+  <div class="progress"><div id="pbar" class="bar" style="width:0%"></div></div>
+  <div id="contacts" class="list"></div>
+</div>
+
+<!-- CHAT VIEW -->
+<div id="chatView" class="chat" style="display:none">
+  <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+    <button class="back-btn" onclick="backToList()">←</button>
+    <b id="chatName"></b>
+    <span id="chatStage" class="stage-tag"></span>
+    <span id="chatMode" class="mode-badge"></span>
+  </div>
+  <div class="stages" id="stageRow"></div>
+  <div id="msgs" style="flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px"></div>
+  <textarea id="sheSaid" placeholder="Paste what she said..." style="flex-shrink:0"></textarea>
+  <button class="main" onclick="gen()" style="flex-shrink:0;margin-top:8px">Generate Rizz ⚡</button>
+  <div id="suggest" style="flex-shrink:0"></div>
+</div>
+
+<!-- Floating + button -->
+<button class="fab" id="fab" onclick="newPerson()">+</button>
 
 <script>
 let db = JSON.parse(localStorage.getItem('rizz_db')||'{}');
 let current = null;
 let curStage = 'day1';
+let activeMode = 'crush'; // 'crush' or 'gf'
 
-function save(){localStorage.setItem('rizz_db', JSON.stringify(db)); renderContacts();}
+const STAGES = {
+  crush: [
+    {key:'day1', label:'Day 1-2 Ice', prog:25},
+    {key:'day2', label:'Day 3-5 Know Her', prog:50},
+    {key:'day3', label:'Day 6-10 Vibe', prog:75},
+    {key:'day4', label:'Day 11+ Ask', prog:100}
+  ],
+  gf: [
+    {key:'daily', label:'Daily Vibe', prog:25},
+    {key:'flirty', label:'Flirty', prog:50},
+    {key:'deep', label:'Deep Talk', prog:75},
+    {key:'repair', label:'Miss Her / Repair', prog:100}
+  ]
+};
 
+function stagesFor(mode){ return STAGES[mode] || STAGES.crush; }
+function defaultStage(mode){ return mode === 'gf' ? 'daily' : 'day1'; }
+function getPersonMode(name){ return (db[name] && db[name].mode) || 'crush'; }
+
+function save(){ localStorage.setItem('rizz_db', JSON.stringify(db)); refreshCounts(); if (document.getElementById('listView').style.display === 'flex') renderContacts(); }
+
+// ---------- HOME ----------
+function refreshCounts(){
+  let c = 0, g = 0;
+  for (let n in db){ if ((db[n].mode||'crush') === 'gf') g++; else c++; }
+  document.getElementById('crushCount').innerText = c;
+  document.getElementById('gfCount').innerText = g;
+}
+
+function openMode(mode){
+  activeMode = mode;
+  document.getElementById('homeView').style.display = 'none';
+  document.getElementById('listView').style.display = 'flex';
+  document.getElementById('listTitle').innerText = mode === 'gf' ? '💕 Girlfriends' : '🔥 Crushes';
+  document.getElementById('pbar').style.width = mode === 'gf' ? '50%' : '25%';
+  document.getElementById('pbar').style.background = mode === 'gf' ? '#ff5c8a' : '#ff2d55';
+  document.getElementById('fab').classList.add('show');
+  renderContacts();
+}
+
+function backToHome(){
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('homeView').style.display = 'flex';
+  document.getElementById('fab').classList.remove('show');
+  refreshCounts();
+}
+
+function backToList(){
+  document.getElementById('chatView').style.display = 'none';
+  document.getElementById('listView').style.display = 'flex';
+  document.getElementById('fab').classList.add('show');
+  current = null;
+  renderContacts();
+}
+
+// ---------- CONTACTS ----------
 function newPerson(){
-  let name = prompt("Her name / nickname?");
-  if(!name) return;
-  db[name] = {stage:'day1', chats:[], created:Date.now()};
+  let name = prompt(activeMode === 'gf' ? "Her name (girlfriend)?" : "Her name (crush)?");
+  if(!name || !name.trim()) return;
+  name = name.trim();
+
+  if (db[name]) { alert("Name already used. Pick another."); return; }
+
+  db[name] = {
+    stage: defaultStage(activeMode),
+    mode: activeMode,
+    chats: [],
+    created: Date.now()
+  };
   save(); openChat(name);
 }
 
 function renderContacts(){
-  let html='';
-  for(let name in db){
+  let html = '';
+  for (let name in db){
+    if ((db[name].mode||'crush') !== activeMode) continue;
     let p = db[name];
-    let prog = {day1:25,day2:50,day3:75,day4:100}[p.stage];
-    html+=`<div class="contact" onclick="openChat('${name}')"><div><b>${name}</b><br><span>${p.chats.slice(-1)[0]?.her||'No chat yet'}</span></div><div class="stage-tag">${p.stage} • ${prog}%</div></div>`;
+    let stgs = stagesFor(activeMode);
+    let prog = (stgs.find(s=>s.key===p.stage)||stgs[0]).prog;
+    let last = p.chats.slice(-1)[0];
+    html += `<div class="contact" onclick="openChat('${name}')">
+      <div style="flex:1;min-width:0">
+        <b>${name}</b><br>
+        <span>${last ? last.her : 'No chat yet'}</span>
+      </div>
+      <div class="stage-tag">${p.stage} • ${prog}%</div>
+    </div>`;
   }
-  if(!html) html='<p style="padding:40px;color:#555;text-align:center">No girls yet. Tap + New to add.</p>';
-  document.getElementById('contacts').innerHTML=html;
+  if (!html) html = `<p style="padding:40px;color:#555;text-align:center">No ${activeMode === 'gf' ? 'girlfriends' : 'crushes'} yet.<br>Tap + to add one.</p>`;
+  document.getElementById('contacts').innerHTML = html;
 }
 
+// ---------- CHAT ----------
 function openChat(name){
-  current=name; curStage=db[name].stage;
-  document.getElementById('contacts').style.display='none';
-  document.getElementById('chatView').style.display='flex';
-  document.getElementById('chatName').innerText=name;
+  current = name;
+  curStage = db[name].stage;
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('chatView').style.display = 'flex';
+  document.getElementById('fab').classList.remove('show');
+  document.getElementById('chatName').innerText = name;
+  buildStageRow();
   updateStageUI();
   renderMsgs();
 }
 
-function back(){
-  document.getElementById('chatView').style.display='none';
-  document.getElementById('contacts').style.display='block';
-  current=null; document.getElementById('title').innerText='RIZZ.';
+function buildStageRow(){
+  let mode = getPersonMode(current);
+  let stgs = stagesFor(mode);
+  document.getElementById('stageRow').innerHTML = stgs.map(s =>
+    `<button onclick="setStage('${s.key}')" id="stg_${s.key}">${s.label}</button>`
+  ).join('');
 }
 
 function setStage(s){
-  curStage=s; db[current].stage=s; save(); updateStageUI();
+  curStage = s;
+  db[current].stage = s;
+  save(); updateStageUI();
 }
 
 function updateStageUI(){
+  let mode = getPersonMode(current);
+  let stgs = stagesFor(mode);
   document.querySelectorAll('.stages button').forEach(b=>b.classList.remove('active'));
-  document.getElementById('s'+curStage.slice(-1)).classList.add('active');
-  document.getElementById('chatStage').innerText=curStage;
-  document.getElementById('pbar').style.width={day1:'25%',day2:'50%',day3:'75%',day4:'100%'}[curStage];
+  let btn = document.getElementById('stg_'+curStage);
+  if (btn) btn.classList.add('active');
+  document.getElementById('chatStage').innerText = curStage;
+  document.getElementById('chatMode').innerText = mode === 'gf' ? '💕 GF' : 'CRUSH';
+  let prog = (stgs.find(s=>s.key===curStage)||stgs[0]).prog;
+  document.getElementById('pbar').style.width = prog + '%';
+  document.getElementById('pbar').style.background = mode === 'gf' ? '#ff5c8a' : '#ff2d55';
 }
 
 function renderMsgs(){
-  let msgs = db[current].chats.map(c=>`<div class="bubble her">${c.her}</div><div class="bubble me">${c.me}</div>`).join('');
-  document.getElementById('msgs').innerHTML=msgs;
+  let msgs = db[current].chats.map(c =>
+    `<div class="bubble her">${c.her}</div><div class="bubble me">${c.me}</div>`
+  ).join('');
+  document.getElementById('msgs').innerHTML = msgs;
+  let box = document.getElementById('msgs');
+  setTimeout(()=>{ box.scrollTop = box.scrollHeight; }, 50);
 }
 
+// ---------- GENERATE ----------
 async function gen(){
   let her = document.getElementById('sheSaid').value.trim();
   if(!her) return;
-  document.getElementById('suggest').innerHTML='Generating from API...';
+  let mode = getPersonMode(current);
+  document.getElementById('suggest').innerHTML = '<div style="color:#888;font-size:13px;padding:8px">Generating...</div>';
   try{
     let history = db[current].chats || [];
     let res = await fetch('https://rizz-sayitbetter.jdevapphub.workers.dev/',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({sheSaid:her, stage:curStage, history: history})
+      body: JSON.stringify({ sheSaid: her, stage: curStage, mode: mode, history: history })
     });
     let d = await res.json();
     if(!res.ok) throw new Error(d.error || d.message || JSON.stringify(d));
     if(d.error) throw new Error(d.error);
-
-    // Ensure fields exist
     if(!d.natural) throw new Error("API returned: " + JSON.stringify(d).slice(0,200));
 
-    document.getElementById('suggest').innerHTML=`
-      <div class="suggest"><b style="color:#ff2d55;font-size:11px">NATURAL</b><br>${d.natural} <button onclick="use(this.dataset.txt,'${her.replace(/'/g,"&#39;")}')" data-txt="${d.natural.replace(/"/g,'&quot;')}" style="float:right;background:#222;border:0;color:#fff;padding:4px 8px;border-radius:20px">USE</button></div>
-      <div class="suggest"><b style="color:#ff2d55;font-size:11px">FUNNY</b><br>${d.funny} <button onclick="use(this.dataset.txt,'${her.replace(/'/g,"&#39;")}')" data-txt="${d.funny.replace(/"/g,'&quot;')}" style="float:right;background:#222;border:0;color:#fff;padding:4px 8px;border-radius:20px">USE</button></div>
-      <div class="suggest" style="border-color:#ff2d55"><b style="color:#ff2d55;font-size:11px">SMOOTH • ${curStage}</b><br>${d.smooth} <button onclick="use(this.dataset.txt,'${her.replace(/'/g,"&#39;")}')" data-txt="${d.smooth.replace(/"/g,'&quot;')}" style="float:right;background:#ff2d55;border:0;color:#fff;padding:4px 8px;border-radius:20px">USE</button><br><small style="color:#666;margin-top:6px;display:block">Tip: ${d.advice||''}</small></div>
+    let labels = mode === 'gf'
+      ? {a:'NATURAL', b:'SWEET', c:'DEEP • '}
+      : {a:'NATURAL', b:'FUNNY', c:'SMOOTH • '};
+
+    let accent = mode === 'gf' ? '#ff5c8a' : '#ff2d55';
+
+    document.getElementById('suggest').innerHTML = `
+      <div class="suggest"><b style="color:${accent};font-size:11px">${labels.a}</b><br>${d.natural} <button onclick="use(this.dataset.txt,'${her.replace(/'/g,"&#39;")}')" data-txt="${(d.natural||'').replace(/"/g,'&quot;')}" style="float:right;background:#222;border:0;color:#fff;padding:4px 8px;border-radius:20px">USE</button></div>
+      <div class="suggest"><b style="color:${accent};font-size:11px">${labels.b}</b><br>${d.funny} <button onclick="use(this.dataset.txt,'${her.replace(/'/g,"&#39;")}')" data-txt="${(d.funny||'').replace(/"/g,'&quot;')}" style="float:right;background:#222;border:0;color:#fff;padding:4px 8px;border-radius:20px">USE</button></div>
+      <div class="suggest" style="border-color:${accent}"><b style="color:${accent};font-size:11px">${labels.c}${curStage}</b><br>${d.smooth} <button onclick="use(this.dataset.txt,'${her.replace(/'/g,"&#39;")}')" data-txt="${(d.smooth||'').replace(/"/g,'&quot;')}" style="float:right;background:${accent};border:0;color:#fff;padding:4px 8px;border-radius:20px">USE</button><br><small style="color:#666;margin-top:6px;display:block">Tip: ${d.advice||''}</small></div>
     `;
-  }catch(e){
-    document.getElementById('suggest').innerHTML='<div style="background:#220000;border:1px solid #550000;padding:12px;border-radius:12px;color:#ff7777">API Error: '+e.message+'</div>';
+  } catch(e){
+    document.getElementById('suggest').innerHTML = '<div style="background:#220000;border:1px solid #550000;padding:12px;border-radius:12px;color:#ff7777;font-size:12px">API Error: '+e.message+'</div>';
     console.error(e);
   }
 }
 
 function use(me, her){
-  db[current].chats.push({her, me, at:Date.now()});
-  save(); renderMsgs(); document.getElementById('sheSaid').value=''; document.getElementById('suggest').innerHTML='';
-  if(db[current].chats.length>3 && curStage=='day1'){setStage('day2')}
+  db[current].chats.push({her, me, at: Date.now()});
+  save(); renderMsgs();
+  document.getElementById('sheSaid').value = '';
+  document.getElementById('suggest').innerHTML = '';
+  let mode = getPersonMode(current);
+  if(mode === 'crush' && db[current].chats.length > 3 && curStage === 'day1'){
+    setTimeout(()=>{ setStage('day2'); }, 400);
+  }
 }
 
-renderContacts();
+// ---------- INIT ----------
+refreshCounts();
 </script>
 </body>
 </html>
