@@ -6,8 +6,6 @@
 <title>RIZZ CRM</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ff2d55">
-
-<!-- iOS PWA support -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RIZZ">
@@ -15,12 +13,13 @@
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#000;color:#fff;max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+html,body{height:100%}
+body{background:#000;color:#fff;max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 header{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
 .progress{height:4px;background:#111;flex-shrink:0}
 .bar{height:4px;background:#ff2d55;transition:0.3s}
 .list{flex:1;min-height:0;overflow:auto}
-.contact{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center}
+.contact{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
 .contact b{font-size:15px}
 .contact span{font-size:12px;color:#888}
 .stage-tag{font-size:10px;background:#111;padding:3px 8px;border-radius:20px;color:#ff2d55;white-space:nowrap}
@@ -29,15 +28,16 @@ header{padding:16px;border-bottom:1px solid #111;display:flex;justify-content:sp
 .me{background:#ff2d55;align-self:flex-end}
 .her{background:#111;align-self:flex-start}
 .suggest{background:#111;border:1px solid #222;border-radius:16px;padding:12px;margin-top:8px}
+.suggest .use{float:right;background:#222;border:0;color:#fff;padding:4px 8px;border-radius:20px;cursor:pointer}
 input,textarea{background:#111;border:1px solid #222;color:#fff;padding:12px;border-radius:12px;width:100%;outline:none;font-family:inherit}
 button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer}
+button.main:disabled{opacity:.6}
 .stages{display:flex;gap:6px;margin:10px 0;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
 .stages::-webkit-scrollbar{display:none}
 .stages button{background:#111;border:1px solid #222;color:#888;padding:6px 10px;border-radius:20px;font-size:11px;white-space:nowrap;cursor:pointer}
 .stages button.active{background:#ff2d55;color:#fff}
 .mode-badge{font-size:10px;background:#1a1a1a;padding:3px 8px;border-radius:20px;color:#888;margin-left:6px}
 
-/* Mode selection cards */
 .modes{padding:20px;display:flex;flex-direction:column;gap:14px;overflow:auto;flex:1;min-height:0}
 .mode-card{padding:22px;border-radius:20px;border:1px solid #222;background:linear-gradient(135deg,#0a0a0a,#111);cursor:pointer;transition:0.2s;position:relative;overflow:hidden}
 .mode-card:active{transform:scale(0.98)}
@@ -50,25 +50,22 @@ button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radi
 .mode-card.gf{border-color:#ff5c8a}
 .mode-card.gf .mname{color:#ff5c8a}
 .back-btn{background:#111;border:0;color:#fff;padding:8px 12px;border-radius:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px}
-.fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:#ff2d55;border:0;color:#fff;font-size:26px;font-weight:300;cursor:pointer;box-shadow:0 4px 20px rgba(255,45,85,0.4);display:none;z-index:10}
+
+/* Floating buttons sit above the bottom corner where ad overlays usually appear */
+.fab{position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#ff2d55;border:0;color:#fff;font-size:26px;font-weight:300;cursor:pointer;box-shadow:0 4px 20px rgba(255,45,85,0.4);display:none;z-index:10}
 .fab.show{display:flex;align-items:center;justify-content:center}
+#installBtn{display:none;position:fixed;bottom:80px;left:20px;padding:12px 18px;border-radius:24px;background:#ff2d55;color:#fff;border:0;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(255,45,85,.4);z-index:20;font-size:13px}
 
-/* Install button */
-#installBtn{display:none;position:fixed;bottom:90px;right:24px;padding:12px 18px;border-radius:24px;background:#ff2d55;color:#fff;border:0;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(255,45,85,.4);z-index:20;font-size:13px}
+/* Single native ad slot (home screen) */
+.ad-slot{border:1px dashed #2a2a2a;border-radius:16px;padding:10px;background:#0d0d0d;min-height:20px}
+.ad-slot .ad-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:6px;display:block}
 
-/* Native banner styling — styled to blend with chat */
-.native-bubble{max-width:80%;padding:10px 14px;border-radius:16px;font-size:12px;background:#0d0d0d;border:1px dashed #2a2a2a;align-self:flex-start;color:#666;margin:6px 0}
-.native-bubble .ad-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#444;margin-bottom:6px;display:block}
-
-/* Paywall / unlock sheet */
+/* Limit sheet */
 .unlock-sheet{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;justify-content:center;z-index:100}
 .unlock-sheet.show{display:flex}
 .unlock-card{background:#0a0a0a;border:1px solid #222;border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:480px;text-align:center}
 .unlock-card h2{font-size:20px;font-weight:800;margin-bottom:10px}
 .unlock-card p{font-size:13px;color:#888;line-height:1.5;margin-bottom:20px}
-.unlock-card a{display:block;background:#ff2d55;color:#fff;text-decoration:none;padding:14px;border-radius:14px;font-weight:700;font-size:15px;margin-bottom:10px}
-.unlock-card .later{background:transparent;color:#666;font-size:13px;border:0;cursor:pointer;padding:8px}
-.counter-pill{position:fixed;top:12px;right:12px;background:#111;border:1px solid #222;padding:4px 10px;border-radius:20px;font-size:11px;color:#ff2d55;z-index:30;font-weight:700}
 </style>
 </head>
 <body>
@@ -92,6 +89,18 @@ button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radi
       <div class="mname">GIRLFRIEND</div>
       <div class="mdesc">Flowing conversation with your girl. Daily vibe, flirty, deep talk, repair.</div>
     </div>
+
+    <!-- Native Banner: container must exist BEFORE its invoke.js runs, and appear only once -->
+    <div class="ad-slot">
+      <span class="ad-label">Sponsored</span>
+      <div id="container-a655a6a78082c813539f2c7c79a7bd15"></div>
+    </div>
+    <script async="async" data-cfasync="false" src="https://pl31614569.profitableratecpmnetwork.com/a655a6a78082c813539f2c7c79a7bd15/invoke.js"></script>
+
+    <!-- Smartlink: plain sponsored link, not tied to any unlock -->
+    <a class="ad-slot" style="display:block;text-decoration:none;color:#888;font-size:12px;text-align:center" href="https://www.profitableratecpmnetwork.com/z86ct3g0?key=77fb44c6e07103098c5a1496b0b7bfce" target="_blank" rel="noopener sponsored">
+      <span class="ad-label">Sponsored</span>Check out today's offer →
+    </a>
   </div>
 </div>
 
@@ -119,114 +128,65 @@ button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radi
   <div id="msgs" style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch"></div>
   <div style="flex-shrink:0;display:flex;flex-direction:column;gap:8px">
     <textarea id="sheSaid" placeholder="Paste what she said..." rows="2"></textarea>
-    <button class="main" onclick="gen()">Generate Rizz ⚡</button>
+    <button class="main" id="genBtn" onclick="gen()">Generate Rizz ⚡</button>
     <div id="suggest"></div>
   </div>
 </div>
 
-<!-- Floating + button -->
 <button class="fab" id="fab" onclick="newPerson()">+</button>
-
-<!-- Install button -->
 <button id="installBtn">⬇ Install RIZZ</button>
 
-<!-- Free-reply counter pill -->
-<div class="counter-pill" id="counterPill" style="display:none">15 free</div>
-
-<!-- Unlock sheet (shown when free replies are exhausted) -->
+<!-- Daily limit sheet (informational only, no click-to-unlock) -->
 <div class="unlock-sheet" id="unlockSheet">
   <div class="unlock-card">
-    <h2>Yho! Free replies finished 🔥</h2>
-    <p>You've used all 15 free replies today. Unlock 15 more instantly by clicking the button below.</p>
-    <a href="https://www.profitableratecpmnetwork.com/z86ct3g0?key=77fb44c6e07103098c5a1496b0b7bfce" target="_blank" rel="noopener" onclick="unlockMore()">Unlock 15 More Rizz</a>
-    <button class="later" onclick="closeUnlock()">Maybe later</button>
+    <h2>Free replies finished for today 🔥</h2>
+    <p>You've used all 15 free replies today. They reset tomorrow, so come back then.</p>
+    <button class="main" style="width:100%" onclick="closeUnlock()">Got it</button>
+    <a href="https://www.profitableratecpmnetwork.com/z86ct3g0?key=77fb44c6e07103098c5a1496b0b7bfce" target="_blank" rel="noopener sponsored" style="display:block;margin-top:14px;font-size:11px;color:#555;text-decoration:none">Sponsored</a>
   </div>
 </div>
 
-<!-- ================== ADSTERRA / PROFITABLERATECPMNETWORK SCRIPTS ================== -->
-<!-- Social Bar — placed just above </body> as per Adsterra docs -->
-<script async="async" data-cfasync="false" src="https://pl31614569.profitableratecpmnetwork.com/a655a6a78082c813539f2c7c79a7bd15/invoke.js"></script>
-
-<!-- Popunder (optional, remove if not using) -->
+<!-- Ads: Social Bar -->
 <script src="https://pl31614568.profitableratecpmnetwork.com/62/c8/13/62c813bc38fbce1fa108024027244086.js"></script>
 
-<!-- ================== APP LOGIC ================== -->
 <script>
-let db = JSON.parse(localStorage.getItem('rizz_db')||'{}');
+let db = {};
+try { db = JSON.parse(localStorage.getItem('rizz_db')||'{}') || {}; } catch(e){ db = {}; }
 let current = null;
 let curStage = 'day1';
 let activeMode = 'crush';
+let busy = false, sugg = {}, lastHer = '';
 
-// ---------- FREEMIUM / AD UNLOCK STATE ----------
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ---------- DAILY FREE LIMIT ----------
 const FREE_LIMIT = 15;
 const STORAGE_KEY = 'rizz_free_used';
-const UNLOCK_KEY  = 'rizz_unlocked';
 
 function todayKey(){
   const d = new Date();
   return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
 }
-
 function loadUsage(){
-  let raw = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); } catch(e){}
   if (!raw || raw.date !== todayKey()){
     raw = { date: todayKey(), count: 0 };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
   }
   return raw;
 }
-
-function saveUsage(u){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-}
-
-function remainingFree(){
-  if (localStorage.getItem(UNLOCK_KEY) === todayKey()) return 999999;
-  const u = loadUsage();
-  return Math.max(0, FREE_LIMIT - u.count);
-}
-
+function remainingFree(){ return Math.max(0, FREE_LIMIT - loadUsage().count); }
 function consumeFree(){
-  if (localStorage.getItem(UNLOCK_KEY) === todayKey()) return true;
   const u = loadUsage();
-  if (u.count >= FREE_LIMIT){
-    openUnlock();
-    return false;
-  }
   u.count += 1;
-  saveUsage(u);
-  updateCounterPill();
-  return true;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+  updateCounter();
 }
-
-function unlockMore(){
-  // Mark as unlocked for today; the user is redirected to the smart link
-  localStorage.setItem(UNLOCK_KEY, todayKey());
-  updateCounterPill();
-  setTimeout(closeUnlock, 800);
-}
-
-function openUnlock(){
-  document.getElementById('unlockSheet').classList.add('show');
-}
-
-function closeUnlock(){
-  document.getElementById('unlockSheet').classList.remove('show');
-}
-
-function updateCounterPill(){
-  const pill = document.getElementById('counterPill');
-  if (localStorage.getItem(UNLOCK_KEY) === todayKey()){
-    pill.style.display = 'none';
-    return;
-  }
-  const r = remainingFree();
-  if (r <= 0){
-    pill.style.display = 'none';
-    return;
-  }
-  pill.style.display = 'block';
-  pill.innerText = r + ' free';
+function openUnlock(){ document.getElementById('unlockSheet').classList.add('show'); }
+function closeUnlock(){ document.getElementById('unlockSheet').classList.remove('show'); }
+function updateCounter(){
+  document.getElementById('genBtn').innerText = 'Generate Rizz ⚡ · ' + remainingFree() + ' left';
 }
 
 const STAGES = {
@@ -243,7 +203,6 @@ const STAGES = {
     {key:'repair', label:'Miss Her / Repair', prog:100}
   ]
 };
-
 function stagesFor(mode){ return STAGES[mode] || STAGES.crush; }
 function defaultStage(mode){ return mode === 'gf' ? 'daily' : 'day1'; }
 function getPersonMode(name){ return (db[name] && db[name].mode) || 'crush'; }
@@ -261,7 +220,6 @@ function refreshCounts(){
   document.getElementById('crushCount').innerText = c;
   document.getElementById('gfCount').innerText = g;
 }
-
 function openMode(mode){
   activeMode = mode;
   document.getElementById('homeView').style.display = 'none';
@@ -272,14 +230,12 @@ function openMode(mode){
   document.getElementById('fab').classList.add('show');
   renderContacts();
 }
-
 function backToHome(){
   document.getElementById('listView').style.display = 'none';
   document.getElementById('homeView').style.display = 'flex';
   document.getElementById('fab').classList.remove('show');
   refreshCounts();
 }
-
 function backToList(){
   document.getElementById('chatView').style.display = 'none';
   document.getElementById('listView').style.display = 'flex';
@@ -293,14 +249,8 @@ function newPerson(){
   let name = prompt(activeMode === 'gf' ? "Her name (girlfriend)?" : "Her name (crush)?");
   if(!name || !name.trim()) return;
   name = name.trim();
-  if (db[name]) { alert("Name already used. Pick another."); return; }
-
-  db[name] = {
-    stage: defaultStage(activeMode),
-    mode: activeMode,
-    chats: [],
-    created: Date.now()
-  };
+  if (Object.prototype.hasOwnProperty.call(db, name)) { alert("Name already used. Pick another."); return; }
+  db[name] = { stage: defaultStage(activeMode), mode: activeMode, chats: [], created: Date.now() };
   save(); openChat(name);
 }
 
@@ -312,17 +262,21 @@ function renderContacts(){
     let stgs = stagesFor(activeMode);
     let prog = (stgs.find(s=>s.key===p.stage)||stgs[0]).prog;
     let last = p.chats.slice(-1)[0];
-    html += `<div class="contact" onclick="openChat('${name.replace(/'/g,"\\'")}')">
+    html += `<div class="contact" data-name="${esc(name)}">
       <div style="flex:1;min-width:0">
-        <b>${name}</b><br>
-        <span>${last ? last.her : 'No chat yet'}</span>
+        <b>${esc(name)}</b><br>
+        <span>${last ? esc(last.her) : 'No chat yet'}</span>
       </div>
-      <div class="stage-tag">${p.stage} • ${prog}%</div>
+      <div class="stage-tag">${esc(p.stage)} • ${prog}%</div>
     </div>`;
   }
   if (!html) html = `<p style="padding:40px;color:#555;text-align:center">No ${activeMode === 'gf' ? 'girlfriends' : 'crushes'} yet.<br>Tap + to add one.</p>`;
   document.getElementById('contacts').innerHTML = html;
 }
+document.getElementById('contacts').addEventListener('click', e => {
+  const el = e.target.closest('.contact');
+  if (el) openChat(el.dataset.name);
+});
 
 // ---------- CHAT ----------
 function openChat(name){
@@ -332,25 +286,23 @@ function openChat(name){
   document.getElementById('chatView').style.display = 'flex';
   document.getElementById('fab').classList.remove('show');
   document.getElementById('chatName').innerText = name;
+  document.getElementById('suggest').innerHTML = '';
   buildStageRow();
   updateStageUI();
+  updateCounter();
   renderMsgs();
 }
-
 function buildStageRow(){
-  let mode = getPersonMode(current);
-  let stgs = stagesFor(mode);
+  let stgs = stagesFor(getPersonMode(current));
   document.getElementById('stageRow').innerHTML = stgs.map(s =>
     `<button onclick="setStage('${s.key}')" id="stg_${s.key}">${s.label}</button>`
   ).join('');
 }
-
 function setStage(s){
   curStage = s;
   db[current].stage = s;
   save(); updateStageUI();
 }
-
 function updateStageUI(){
   let mode = getPersonMode(current);
   let stgs = stagesFor(mode);
@@ -363,96 +315,86 @@ function updateStageUI(){
   document.getElementById('pbar').style.width = prog + '%';
   document.getElementById('pbar').style.background = mode === 'gf' ? '#ff5c8a' : '#ff2d55';
 }
-
 function renderMsgs(){
-  let chats = db[current].chats;
   let html = '';
-  chats.forEach((c, i) => {
-    html += `<div class="bubble her">${c.her}</div>`;
-    html += `<div class="bubble me">${c.me}</div>`;
-
-    // Inject a native banner bubble every 4 exchanges (after 4th, 8th, 12th...)
-    if ((i + 1) % 4 === 0) {
-      html += `<div class="native-bubble">
-        <span class="ad-label">Sponsored</span>
-        <div id="container-a655a6a78082c813539f2c7c79a7bd15"></div>
-      </div>`;
-    }
+  db[current].chats.forEach(c => {
+    html += `<div class="bubble her">${esc(c.her)}</div><div class="bubble me">${esc(c.me)}</div>`;
   });
-  document.getElementById('msgs').innerHTML = html;
-
-  // Re-render native ad into any injected container
-  if (window.__nativeAdLoaded) {
-    document.querySelectorAll('#container-a655a6a78082c813539f2c7c79a7bd15').forEach(el => {
-      if (el && !el.dataset.filled) {
-        el.dataset.filled = '1';
-        el.innerHTML = '<span style="color:#444;font-size:11px">Ad loading…</span>';
-      }
-    });
-  }
-
   let box = document.getElementById('msgs');
+  box.innerHTML = html;
   setTimeout(()=>{ box.scrollTop = box.scrollHeight; }, 50);
 }
 
 // ---------- GENERATE ----------
+function sugRow(label, key, text, accent, primary){
+  return `<div class="suggest"${primary ? ` style="border-color:${accent}"` : ''}>
+    <b style="color:${accent};font-size:11px">${label}</b><br>${esc(text)}
+    <button class="use"${primary ? ` style="background:${accent}"` : ''} onclick="useSug('${key}')">USE</button>`;
+}
+
 async function gen(){
-  let her = document.getElementById('sheSaid').value.trim();
-  if(!her) return;
+  if (busy) return;
+  const her = document.getElementById('sheSaid').value.trim();
+  if (!her) return;
+  if (remainingFree() <= 0){ openUnlock(); return; }
 
-  // Check free reply budget BEFORE calling the API
-  if (!consumeFree()) return;
-
-  let mode = getPersonMode(current);
-  document.getElementById('suggest').innerHTML = '<div style="color:#888;font-size:13px;padding:8px">Generating...</div>';
+  busy = true;
+  document.getElementById('genBtn').disabled = true;
+  const mode = getPersonMode(current);
+  const box = document.getElementById('suggest');
+  box.innerHTML = '<div style="color:#888;font-size:13px;padding:8px">Generating...</div>';
   try{
-    let history = db[current].chats || [];
-    let res = await fetch('https://rizz-sayitbetter.jdevapphub.workers.dev/',{
+    const history = db[current].chats || [];
+    const res = await fetch('https://rizz-sayitbetter.jdevapphub.workers.dev/',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ sheSaid: her, stage: curStage, mode: mode, history: history })
     });
-    let d = await res.json();
+    const d = await res.json();
     if(!res.ok) throw new Error(d.error || d.message || JSON.stringify(d));
     if(d.error) throw new Error(d.error);
     if(!d.natural) throw new Error("API returned: " + JSON.stringify(d).slice(0,200));
 
-    let labels = mode === 'gf'
-      ? {a:'NATURAL', b:'SWEET', c:'DEEP • '}
-      : {a:'NATURAL', b:'FUNNY', c:'SMOOTH • '};
+    consumeFree(); // only count successful replies
 
-    let accent = mode === 'gf' ? '#ff5c8a' : '#ff2d55';
+    lastHer = her;
+    sugg = { natural: d.natural, funny: d.funny, smooth: d.smooth };
+    const labels = mode === 'gf' ? {a:'NATURAL', b:'SWEET', c:'DEEP • '} : {a:'NATURAL', b:'FUNNY', c:'SMOOTH • '};
+    const accent = mode === 'gf' ? '#ff5c8a' : '#ff2d55';
 
-    document.getElementById('suggest').innerHTML = `
-      <div class="suggest"><b style="color:${accent};font-size:11px">${labels.a}</b><br>${d.natural} <button onclick="use(this.dataset.txt,this.dataset.her)" data-txt="${(d.natural||'').replace(/"/g,'&quot;')}" data-her="${her.replace(/"/g,'&quot;')}" style="float:right;background:#222;border:0;color:#fff;padding:4px 8px;border-radius:20px;cursor:pointer">USE</button></div>
-      <div class="suggest"><b style="color:${accent};font-size:11px">${labels.b}</b><br>${d.funny} <button onclick="use(this.dataset.txt,this.dataset.her)" data-txt="${(d.funny||'').replace(/"/g,'&quot;')}" data-her="${her.replace(/"/g,'&quot;')}" style="float:right;background:#222;border:0;color:#fff;padding:4px 8px;border-radius:20px;cursor:pointer">USE</button></div>
-      <div class="suggest" style="border-color:${accent}"><b style="color:${accent};font-size:11px">${labels.c}${curStage}</b><br>${d.smooth} <button onclick="use(this.dataset.txt,this.dataset.her)" data-txt="${(d.smooth||'').replace(/"/g,'&quot;')}" data-her="${her.replace(/"/g,'&quot;')}" style="float:right;background:${accent};border:0;color:#fff;padding:4px 8px;border-radius:20px;cursor:pointer">USE</button><br><small style="color:#666;margin-top:6px;display:block">Tip: ${d.advice||''}</small></div>
-    `;
+    box.innerHTML =
+      sugRow(labels.a, 'natural', d.natural, accent, false) + '</div>' +
+      sugRow(labels.b, 'funny', d.funny, accent, false) + '</div>' +
+      sugRow(labels.c + esc(curStage), 'smooth', d.smooth, accent, true) +
+      `<br><small style="color:#666;margin-top:6px;display:block">Tip: ${esc(d.advice||'')}</small></div>`;
   } catch(e){
-    document.getElementById('suggest').innerHTML = '<div style="background:#220000;border:1px solid #550000;padding:12px;border-radius:12px;color:#ff7777;font-size:12px">API Error: '+e.message+'</div>';
+    box.innerHTML = '<div style="background:#220000;border:1px solid #550000;padding:12px;border-radius:12px;color:#ff7777;font-size:12px">API Error: '+esc(e.message)+'</div>';
     console.error(e);
+  } finally {
+    busy = false;
+    document.getElementById('genBtn').disabled = false;
   }
 }
 
-function use(me, her){
+function useSug(key){
+  const me = sugg[key];
   if (!me) return;
-  db[current].chats.push({her, me, at: Date.now()});
+  db[current].chats.push({her: lastHer, me, at: Date.now()});
   save(); renderMsgs();
   document.getElementById('sheSaid').value = '';
   document.getElementById('suggest').innerHTML = '';
-  let mode = getPersonMode(current);
-  if(mode === 'crush' && db[current].chats.length > 3 && curStage === 'day1'){
+  sugg = {};
+  if(getPersonMode(current) === 'crush' && db[current].chats.length > 3 && curStage === 'day1'){
     setTimeout(()=>{ setStage('day2'); }, 400);
   }
 }
 
 // ---------- INIT ----------
 refreshCounts();
-updateCounterPill();
+updateCounter();
 </script>
 
 <script>
-// Service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js')
@@ -460,8 +402,6 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.error('SW failed:', err));
   });
 }
-
-// Install button (Android / Desktop Chrome)
 let deferredPrompt;
 const installBtn = document.getElementById('installBtn');
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -476,9 +416,7 @@ installBtn.addEventListener('click', async () => {
   deferredPrompt = null;
   installBtn.style.display = 'none';
 });
-window.addEventListener('appinstalled', () => {
-  installBtn.style.display = 'none';
-});
+window.addEventListener('appinstalled', () => { installBtn.style.display = 'none'; });
 </script>
 </body>
 </html>
