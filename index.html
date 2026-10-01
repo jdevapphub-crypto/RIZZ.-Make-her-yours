@@ -55,11 +55,25 @@ button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radi
 
 /* Install button */
 #installBtn{display:none;position:fixed;bottom:90px;right:24px;padding:12px 18px;border-radius:24px;background:#ff2d55;color:#fff;border:0;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(255,45,85,.4);z-index:20;font-size:13px}
+
+/* Native banner styling — styled to blend with chat */
+.native-bubble{max-width:80%;padding:10px 14px;border-radius:16px;font-size:12px;background:#0d0d0d;border:1px dashed #2a2a2a;align-self:flex-start;color:#666;margin:6px 0}
+.native-bubble .ad-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#444;margin-bottom:6px;display:block}
+
+/* Paywall / unlock sheet */
+.unlock-sheet{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;justify-content:center;z-index:100}
+.unlock-sheet.show{display:flex}
+.unlock-card{background:#0a0a0a;border:1px solid #222;border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:480px;text-align:center}
+.unlock-card h2{font-size:20px;font-weight:800;margin-bottom:10px}
+.unlock-card p{font-size:13px;color:#888;line-height:1.5;margin-bottom:20px}
+.unlock-card a{display:block;background:#ff2d55;color:#fff;text-decoration:none;padding:14px;border-radius:14px;font-weight:700;font-size:15px;margin-bottom:10px}
+.unlock-card .later{background:transparent;color:#666;font-size:13px;border:0;cursor:pointer;padding:8px}
+.counter-pill{position:fixed;top:12px;right:12px;background:#111;border:1px solid #222;padding:4px 10px;border-radius:20px;font-size:11px;color:#ff2d55;z-index:30;font-weight:700}
 </style>
 </head>
 <body>
 
-<!-- HOME VIEW (mode selection) -->
+<!-- Home view -->
 <div id="homeView" style="display:flex;flex-direction:column;height:100%;flex:1;min-height:0">
   <header>
     <b>RIZZ.</b>
@@ -81,7 +95,7 @@ button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radi
   </div>
 </div>
 
-<!-- LIST VIEW (girls in selected mode) -->
+<!-- List view -->
 <div id="listView" style="display:none;flex-direction:column;height:100%;flex:1;min-height:0">
   <header>
     <div style="display:flex;align-items:center;gap:10px">
@@ -93,7 +107,7 @@ button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radi
   <div id="contacts" class="list"></div>
 </div>
 
-<!-- CHAT VIEW -->
+<!-- Chat view -->
 <div id="chatView" class="chat" style="display:none">
   <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
     <button class="back-btn" onclick="backToList()">←</button>
@@ -113,14 +127,107 @@ button.main{background:#ff2d55;color:#fff;border:0;padding:12px 16px;border-radi
 <!-- Floating + button -->
 <button class="fab" id="fab" onclick="newPerson()">+</button>
 
-<!-- Install button (Android / Desktop Chrome) -->
+<!-- Install button -->
 <button id="installBtn">⬇ Install RIZZ</button>
 
+<!-- Free-reply counter pill -->
+<div class="counter-pill" id="counterPill" style="display:none">15 free</div>
+
+<!-- Unlock sheet (shown when free replies are exhausted) -->
+<div class="unlock-sheet" id="unlockSheet">
+  <div class="unlock-card">
+    <h2>Yho! Free replies finished 🔥</h2>
+    <p>You've used all 15 free replies today. Unlock 15 more instantly by clicking the button below.</p>
+    <a href="https://www.profitableratecpmnetwork.com/z86ct3g0?key=77fb44c6e07103098c5a1496b0b7bfce" target="_blank" rel="noopener" onclick="unlockMore()">Unlock 15 More Rizz</a>
+    <button class="later" onclick="closeUnlock()">Maybe later</button>
+  </div>
+</div>
+
+<!-- ================== ADSTERRA / PROFITABLERATECPMNETWORK SCRIPTS ================== -->
+<!-- Social Bar — placed just above </body> as per Adsterra docs -->
+<script async="async" data-cfasync="false" src="https://pl31614569.profitableratecpmnetwork.com/a655a6a78082c813539f2c7c79a7bd15/invoke.js"></script>
+
+<!-- Popunder (optional, remove if not using) -->
+<script src="https://pl31614568.profitableratecpmnetwork.com/62/c8/13/62c813bc38fbce1fa108024027244086.js"></script>
+
+<!-- ================== APP LOGIC ================== -->
 <script>
 let db = JSON.parse(localStorage.getItem('rizz_db')||'{}');
 let current = null;
 let curStage = 'day1';
 let activeMode = 'crush';
+
+// ---------- FREEMIUM / AD UNLOCK STATE ----------
+const FREE_LIMIT = 15;
+const STORAGE_KEY = 'rizz_free_used';
+const UNLOCK_KEY  = 'rizz_unlocked';
+
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+}
+
+function loadUsage(){
+  let raw = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+  if (!raw || raw.date !== todayKey()){
+    raw = { date: todayKey(), count: 0 };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
+  }
+  return raw;
+}
+
+function saveUsage(u){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+}
+
+function remainingFree(){
+  if (localStorage.getItem(UNLOCK_KEY) === todayKey()) return 999999;
+  const u = loadUsage();
+  return Math.max(0, FREE_LIMIT - u.count);
+}
+
+function consumeFree(){
+  if (localStorage.getItem(UNLOCK_KEY) === todayKey()) return true;
+  const u = loadUsage();
+  if (u.count >= FREE_LIMIT){
+    openUnlock();
+    return false;
+  }
+  u.count += 1;
+  saveUsage(u);
+  updateCounterPill();
+  return true;
+}
+
+function unlockMore(){
+  // Mark as unlocked for today; the user is redirected to the smart link
+  localStorage.setItem(UNLOCK_KEY, todayKey());
+  updateCounterPill();
+  setTimeout(closeUnlock, 800);
+}
+
+function openUnlock(){
+  document.getElementById('unlockSheet').classList.add('show');
+}
+
+function closeUnlock(){
+  document.getElementById('unlockSheet').classList.remove('show');
+}
+
+function updateCounterPill(){
+  const pill = document.getElementById('counterPill');
+  if (localStorage.getItem(UNLOCK_KEY) === todayKey()){
+    pill.style.display = 'none';
+    return;
+  }
+  const r = remainingFree();
+  if (r <= 0){
+    pill.style.display = 'none';
+    return;
+  }
+  pill.style.display = 'block';
+  pill.innerText = r + ' free';
+}
 
 const STAGES = {
   crush: [
@@ -186,7 +293,6 @@ function newPerson(){
   let name = prompt(activeMode === 'gf' ? "Her name (girlfriend)?" : "Her name (crush)?");
   if(!name || !name.trim()) return;
   name = name.trim();
-
   if (db[name]) { alert("Name already used. Pick another."); return; }
 
   db[name] = {
@@ -259,10 +365,32 @@ function updateStageUI(){
 }
 
 function renderMsgs(){
-  let msgs = db[current].chats.map(c =>
-    `<div class="bubble her">${c.her}</div><div class="bubble me">${c.me}</div>`
-  ).join('');
-  document.getElementById('msgs').innerHTML = msgs;
+  let chats = db[current].chats;
+  let html = '';
+  chats.forEach((c, i) => {
+    html += `<div class="bubble her">${c.her}</div>`;
+    html += `<div class="bubble me">${c.me}</div>`;
+
+    // Inject a native banner bubble every 4 exchanges (after 4th, 8th, 12th...)
+    if ((i + 1) % 4 === 0) {
+      html += `<div class="native-bubble">
+        <span class="ad-label">Sponsored</span>
+        <div id="container-a655a6a78082c813539f2c7c79a7bd15"></div>
+      </div>`;
+    }
+  });
+  document.getElementById('msgs').innerHTML = html;
+
+  // Re-render native ad into any injected container
+  if (window.__nativeAdLoaded) {
+    document.querySelectorAll('#container-a655a6a78082c813539f2c7c79a7bd15').forEach(el => {
+      if (el && !el.dataset.filled) {
+        el.dataset.filled = '1';
+        el.innerHTML = '<span style="color:#444;font-size:11px">Ad loading…</span>';
+      }
+    });
+  }
+
   let box = document.getElementById('msgs');
   setTimeout(()=>{ box.scrollTop = box.scrollHeight; }, 50);
 }
@@ -271,6 +399,10 @@ function renderMsgs(){
 async function gen(){
   let her = document.getElementById('sheSaid').value.trim();
   if(!her) return;
+
+  // Check free reply budget BEFORE calling the API
+  if (!consumeFree()) return;
+
   let mode = getPersonMode(current);
   document.getElementById('suggest').innerHTML = '<div style="color:#888;font-size:13px;padding:8px">Generating...</div>';
   try{
@@ -316,6 +448,7 @@ function use(me, her){
 
 // ---------- INIT ----------
 refreshCounts();
+updateCounterPill();
 </script>
 
 <script>
