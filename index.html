@@ -64,6 +64,12 @@ button.main:disabled{opacity:.6}
 .unlock-card{background:#0a0a0a;border:1px solid #222;border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:480px;text-align:center}
 .unlock-card h2{font-size:20px;font-weight:800;margin-bottom:10px}
 .unlock-card p{font-size:13px;color:#888;line-height:1.5;margin-bottom:20px}
+#unlockBar{position:fixed;top:env(safe-area-inset-top,0px);left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#ff2d55;color:#fff;padding:10px 14px;display:none;align-items:center;justify-content:space-between;z-index:200;font-size:13px;font-weight:700}
+#unlockBar.show{display:flex}
+#unlockBar button{background:#fff;color:#ff2d55;border:0;padding:8px 16px;border-radius:20px;font-weight:800;cursor:pointer}
+#unlockBar button:disabled{opacity:.5}
+#toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:300}
+#toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -144,6 +150,9 @@ button.main:disabled{opacity:.6}
   </div>
 </div>
 
+<div id="unlockBar"><span id="unlockTxt"></span><button id="unlockDone" onclick="doneClick()">Wait</button></div>
+<div id="toast"></div>
+
 <!-- Social Bar removed (no corner pop-up ad) -->
 
 <script>
@@ -198,29 +207,48 @@ function updateCounter(){
   document.getElementById('genBtn').innerText = 'Generate Rizz ⚡ · ' + remainingFree() + ' left';
 }
 
-let pending = null;
+let pending = null, tick = null;
 function startUnlock(){
+  closeUnlock();
   pending = { t0: Date.now(), wentHidden: false };
+  document.getElementById('unlockBar').classList.add('show');
   window.open(SMARTLINK, '_blank', 'noopener');
+  clearInterval(tick); tick = setInterval(renderBar, 250); renderBar();
+}
+function renderBar(){
+  if (!pending) return;
+  const left = Math.max(0, Math.ceil((WAIT_MS - (Date.now() - pending.t0)) / 1000));
+  const t = document.getElementById('unlockTxt'), b = document.getElementById('unlockDone');
+  if (left > 0){ t.textContent = '⏳ Stay on sponsor page: ' + left + 's'; b.textContent = 'Wait'; b.disabled = true; }
+  else if (pending.wentHidden){ t.textContent = '✅ Done! Tap to unlock'; b.textContent = 'Done'; b.disabled = false; clearInterval(tick); }
+  else { t.textContent = 'Sponsor page did not open'; b.textContent = 'Retry'; b.disabled = false; }
+}
+function doneClick(){
+  if (!pending) return;
+  if (!pending.wentHidden){ pending.t0 = Date.now(); window.open(SMARTLINK, '_blank', 'noopener'); return; }
+  const u = loadUsage();
+  u.bonus += UNLOCK_BONUS; u.unlocks += 1;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+  pending = null; clearInterval(tick);
+  document.getElementById('unlockBar').classList.remove('show');
+  updateCounter();
+  toast('+' + UNLOCK_BONUS + ' replies unlocked 🔥');
 }
 document.addEventListener('visibilitychange', () => {
-  if (!pending) return;
-  if (document.hidden){ pending.wentHidden = true; return; }
-  const ok = pending.wentHidden && (Date.now() - pending.t0 >= WAIT_MS);
-  if (ok){
-    const u = loadUsage();
-    u.bonus += UNLOCK_BONUS;
-    u.unlocks += 1;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    pending = null;
-    updateCounter();
-    closeUnlock();
-    alert('+' + UNLOCK_BONUS + ' replies unlocked 🔥');
-  } else if (pending.wentHidden){
-    pending = null;
-    document.getElementById('unlockMsg').textContent = 'Stay on the sponsor page a bit longer (about 15 seconds), then try again.';
-  }
+  if (pending && document.hidden) pending.wentHidden = true; else renderBar();
 });
+
+// ---------- COPY ----------
+function toast(t){
+  const e = document.getElementById('toast'); e.textContent = t; e.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('show'), 1500);
+}
+async function copyText(t){
+  try { await navigator.clipboard.writeText(t); }
+  catch(e){ const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try{ document.execCommand('copy'); }catch(_){} a.remove(); }
+  toast('Copied ✓');
+}
+function copySug(k){ if (sugg[k]) copyText(sugg[k]); }
 
 const STAGES = {
   crush: [
@@ -360,9 +388,9 @@ function renderMsgs(){
 
 // ---------- GENERATE ----------
 function sugRow(label, key, text, accent, primary){
-  return `<div class="suggest"${primary ? ` style="border-color:${accent}"` : ''}>
+  return `<div class="suggest" onclick="copySug('${key}')" style="cursor:pointer${primary ? `;border-color:${accent}` : ''}">
     <b style="color:${accent};font-size:11px">${label}</b><br>${esc(text)}
-    <button class="use"${primary ? ` style="background:${accent}"` : ''} onclick="useSug('${key}')">USE</button>`;
+    <button class="use"${primary ? ` style="background:${accent}"` : ''} onclick="event.stopPropagation();useSug('${key}')">USE</button>`;
 }
 
 async function gen(){
@@ -412,6 +440,7 @@ async function gen(){
 function useSug(key){
   const me = sugg[key];
   if (!me) return;
+  copyText(me);
   db[current].chats.push({her: lastHer, me, at: Date.now()});
   save(); renderMsgs();
   document.getElementById('sheSaid').value = '';
