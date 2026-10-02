@@ -52,16 +52,13 @@ button.main:disabled{opacity:.6}
 .mode-card.gf .mname{color:#ff5c8a}
 .back-btn{background:#111;border:0;color:#fff;padding:8px 12px;border-radius:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px}
 
-/* Floating buttons sit above the bottom corner where ad overlays usually appear */
 .fab{position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#ff2d55;border:0;color:#fff;font-size:26px;font-weight:300;cursor:pointer;box-shadow:0 4px 20px rgba(255,45,85,0.4);display:none;z-index:10}
 .fab.show{display:flex;align-items:center;justify-content:center}
 #installBtn{display:none;position:fixed;bottom:80px;left:20px;padding:12px 18px;border-radius:24px;background:#ff2d55;color:#fff;border:0;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(255,45,85,.4);z-index:20;font-size:13px}
 
-/* Single native ad slot (home screen) */
 .ad-slot{border:1px dashed #2a2a2a;border-radius:16px;padding:10px;background:#0d0d0d;min-height:20px}
 .ad-slot .ad-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:6px;display:block}
 
-/* Limit sheet */
 .unlock-sheet{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;justify-content:center;z-index:100}
 .unlock-sheet.show{display:flex}
 .unlock-card{background:#0a0a0a;border:1px solid #222;border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:480px;text-align:center}
@@ -91,14 +88,14 @@ button.main:disabled{opacity:.6}
       <div class="mdesc">Flowing conversation with your girl. Daily vibe, flirty, deep talk, repair.</div>
     </div>
 
-    <!-- Native Banner: container must exist BEFORE its invoke.js runs, and appear only once -->
+    <!-- Native Banner -->
     <div class="ad-slot">
       <span class="ad-label">Sponsored</span>
       <div id="container-a655a6a78082c813539f2c7c79a7bd15"></div>
     </div>
     <script async="async" data-cfasync="false" src="https://pl31614569.profitableratecpmnetwork.com/a655a6a78082c813539f2c7c79a7bd15/invoke.js"></script>
 
-    <!-- Smartlink: plain sponsored link, not tied to any unlock -->
+    <!-- Smartlink: plain sponsored link -->
     <a class="ad-slot" style="display:block;text-decoration:none;color:#888;font-size:12px;text-align:center" href="https://www.profitableratecpmnetwork.com/z86ct3g0?key=77fb44c6e07103098c5a1496b0b7bfce" target="_blank" rel="noopener sponsored">
       <span class="ad-label">Sponsored</span>Check out today's offer →
     </a>
@@ -137,18 +134,17 @@ button.main:disabled{opacity:.6}
 <button class="fab" id="fab" onclick="newPerson()">+</button>
 <button id="installBtn">⬇ Install RIZZ</button>
 
-<!-- Daily limit sheet (informational only, no click-to-unlock) -->
+<!-- Unlock sheet: after 15 replies, open sponsor page to unlock 15 more (repeatable) -->
 <div class="unlock-sheet" id="unlockSheet">
   <div class="unlock-card">
-    <h2>Free replies finished for today 🔥</h2>
-    <p>You've used all 15 free replies today. They reset tomorrow, so come back then.</p>
-    <button class="main" style="width:100%" onclick="closeUnlock()">Got it</button>
-    <a href="https://www.profitableratecpmnetwork.com/z86ct3g0?key=77fb44c6e07103098c5a1496b0b7bfce" target="_blank" rel="noopener sponsored" style="display:block;margin-top:14px;font-size:11px;color:#555;text-decoration:none">Sponsored</a>
+    <h2>Free replies finished 🔥</h2>
+    <p id="unlockMsg">Open our sponsor page for about 15 seconds, then come back to unlock 15 more replies.</p>
+    <button class="main" id="unlockBtn" style="width:100%" onclick="startUnlock()">Unlock 15 more (open sponsor)</button>
+    <button onclick="closeUnlock()" style="margin-top:12px;background:none;border:0;color:#666;font-size:12px;cursor:pointer">Not now</button>
   </div>
 </div>
 
-<!-- Ads: Social Bar -->
-<script src="https://pl31614568.profitableratecpmnetwork.com/62/c8/13/62c813bc38fbce1fa108024027244086.js"></script>
+<!-- Social Bar removed (no corner pop-up ad) -->
 
 <script>
 let db = {};
@@ -160,9 +156,12 @@ let busy = false, sugg = {}, lastHer = '';
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-// ---------- DAILY FREE LIMIT ----------
+// ---------- FREE LIMIT + UNLOCK ----------
 const FREE_LIMIT = 15;
+const UNLOCK_BONUS = 15;
+const WAIT_MS = 15000;
 const STORAGE_KEY = 'rizz_free_used';
+const SMARTLINK = 'https://www.profitableratecpmnetwork.com/z86ct3g0?key=77fb44c6e07103098c5a1496b0b7bfce';
 
 function todayKey(){
   const d = new Date();
@@ -172,23 +171,56 @@ function loadUsage(){
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); } catch(e){}
   if (!raw || raw.date !== todayKey()){
-    raw = { date: todayKey(), count: 0 };
+    raw = { date: todayKey(), count: 0, bonus: 0, unlocks: 0 };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
   }
+  raw.bonus = raw.bonus || 0;
+  raw.unlocks = raw.unlocks || 0;
   return raw;
 }
-function remainingFree(){ return Math.max(0, FREE_LIMIT - loadUsage().count); }
+function remainingFree(){
+  const u = loadUsage();
+  return Math.max(0, FREE_LIMIT + u.bonus - u.count);
+}
 function consumeFree(){
   const u = loadUsage();
   u.count += 1;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
   updateCounter();
 }
-function openUnlock(){ document.getElementById('unlockSheet').classList.add('show'); }
+function openUnlock(){
+  document.getElementById('unlockBtn').style.display = 'block';
+  document.getElementById('unlockMsg').textContent = 'Open our sponsor page for about 15 seconds, then come back to unlock 15 more replies.';
+  document.getElementById('unlockSheet').classList.add('show');
+}
 function closeUnlock(){ document.getElementById('unlockSheet').classList.remove('show'); }
 function updateCounter(){
   document.getElementById('genBtn').innerText = 'Generate Rizz ⚡ · ' + remainingFree() + ' left';
 }
+
+let pending = null;
+function startUnlock(){
+  pending = { t0: Date.now(), wentHidden: false };
+  window.open(SMARTLINK, '_blank', 'noopener');
+}
+document.addEventListener('visibilitychange', () => {
+  if (!pending) return;
+  if (document.hidden){ pending.wentHidden = true; return; }
+  const ok = pending.wentHidden && (Date.now() - pending.t0 >= WAIT_MS);
+  if (ok){
+    const u = loadUsage();
+    u.bonus += UNLOCK_BONUS;
+    u.unlocks += 1;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    pending = null;
+    updateCounter();
+    closeUnlock();
+    alert('+' + UNLOCK_BONUS + ' replies unlocked 🔥');
+  } else if (pending.wentHidden){
+    pending = null;
+    document.getElementById('unlockMsg').textContent = 'Stay on the sponsor page a bit longer (about 15 seconds), then try again.';
+  }
+});
 
 const STAGES = {
   crush: [
@@ -356,7 +388,7 @@ async function gen(){
     if(d.error) throw new Error(d.error);
     if(!d.natural) throw new Error("API returned: " + JSON.stringify(d).slice(0,200));
 
-    consumeFree(); // only count successful replies
+    consumeFree();
 
     lastHer = her;
     sugg = { natural: d.natural, funny: d.funny, smooth: d.smooth };
