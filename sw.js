@@ -1,4 +1,4 @@
-const CACHE = 'rizz-v2';
+const CACHE = 'rizz-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -47,7 +47,22 @@ self.addEventListener('fetch', e => {
   // Only cache same-origin requests
   if (url.origin !== self.location.origin) return;
 
-  // App shell: cache-first, fall back to network
+  // App shell: network-first for HTML, cache-first for everything else
+  const isHTML = req.headers.get('accept')?.includes('text/html');
+
+  if (isHTML) {
+    e.respondWith(
+      fetch(req)
+        .then(res => {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(req).then(cached => {
       if (cached) return cached;
